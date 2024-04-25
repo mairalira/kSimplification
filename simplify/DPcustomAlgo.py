@@ -1,13 +1,14 @@
 import numpy as np
 from collections import defaultdict as D
 from collections import namedtuple as T
-from plotting import plot
+from simplify.plotting import plot
 from typing import Dict
 import random
 
 
 Solution = T("Solution", "error index prev last_seg")
 Function = T("Function", "m b")
+
 
 def sol(error, index, previous, last_seg):
     return Solution(error, index, previous,last_seg)  # please never round
@@ -69,6 +70,21 @@ def segmented_least_squares(X, Y, c) ->Dict[int,Solution]:
 
         OPT[i] = sol(min_error, i, min_j, last_seg)
 
+    # Currently OPT[n-1] holds the best solution, if we require the algorithm to pick n, lets fix this.
+    # Let's manually check all possible last segments, going through two points in the TS.
+    # We will use the DP for the area before last segment.
+    min_error = OPT[len(X)-1].error
+    for i in range(1, len(X)):
+
+        for j in range(0, i):
+            if j == 19 and i == 21:
+                print("Stop")
+            f = _gen_line(X[j],Y[j],X[i],Y[i])
+            f_line_out_error = _line_error(f,X[j:], Y[j:])
+            f_out_error = OPT[j].error + c + f_line_out_error # From 0..j + c + rest
+            if f_out_error < min_error:
+                OPT[len(X)-1] = sol(f_out_error, i, j, False)
+                min_error = OPT[len(X)-1].error
     return OPT
 
 
@@ -79,26 +95,33 @@ def solve(X, Y, c) -> Dict[int,Solution]:
 
 def extract_points(OPT: Dict[int, Solution], X):
     solution = OPT[len(X)-1]
-    list_of_points_last_first = []
+    list_of_points_last_first = [solution.index]
     while (not solution.last_seg) and (solution.index != solution.prev):
-        list_of_points_last_first.append(solution.index)
         solution = OPT[solution.prev]
+        list_of_points_last_first.append(solution.index)
+
     if solution.last_seg:
         list_of_points_last_first.append(solution.prev)
 
-
     return list(reversed(list_of_points_last_first))
 
-if __name__ == "__main__":
-    random.seed(1)
-    X = list(range(100))
-    Y = [random.randint(0,10) for _ in range(len(X))]
-    c = 40
+
+def solve_and_find_points(X,Y,c,saveImg=True):
     OPT = solve(X, Y, c)
-    print(OPT[len(X)-1].error)
+    print(OPT[len(X) - 1].error)
+
 
     selected_points = extract_points(OPT, X)
     print(f"Num points:{len(selected_points)}, all points: {selected_points}")
 
     ys = [Y[i] for i in selected_points]
-    plot(X,Y, selected_points, ys)
+    if saveImg:
+        plot(X, Y, selected_points, ys)
+    return selected_points, ys
+
+if __name__ == "__main__":
+    random.seed(2)
+    X = list(range(1000))
+    Y = [random.randint(-100,100) for _ in range(len(X))]
+    c = 11000
+    solve_and_find_points(X,Y,c)

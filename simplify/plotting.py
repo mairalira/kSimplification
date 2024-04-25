@@ -27,7 +27,7 @@ def plot(X,Y, pX, pY, fname="Plot"):
 
     XMIN = -1
     XMAX = len(X) + 1
-    YMIN = -5
+    YMIN = min(Y) - 5
     YMAX = max(Y) + 5
     plt.xlim(XMIN, XMAX)
     plt.ylim(YMIN, YMAX)
@@ -44,6 +44,9 @@ def plot(X,Y, pX, pY, fname="Plot"):
 
     for i in range(len(pX)-1):
         plt.plot((pX[i], pX[i+1]), (pY[i], pY[i+1]), "--", markersize=3, c="red")
+
+    if pX[-1] != X[-1]:
+        plt.plot((pX[-1], X[-1]), _fit_points(pX[-1], X[-1], pX[-2], pY[-2], pX[-1], pY[-1]), "--", markersize=3, c="red")
     #while opt.l > 0:
     #    f = opt.slope
     #    x1 = opt.pre
