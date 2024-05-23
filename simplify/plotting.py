@@ -24,7 +24,7 @@ def _fit_points(x1, x2, px1, py1, px2, py2):
 
 def plot(X,Y, pX, pY, fname="Plot"):
     import matplotlib.pyplot as plt
-
+    plt.clf()
     XMIN = -1
     XMAX = len(X) + 1
     YMIN = min(Y) - 5
@@ -36,7 +36,7 @@ def plot(X,Y, pX, pY, fname="Plot"):
 
     # Plot the original points
     plt.plot(X, Y, "o", markersize=3, c="black")#, label=label)
-    plt.legend(loc="upper right")
+    #plt.legend(loc="upper right")
 
     # Plot slopes (going from right to left)
     if pX[0] != X[0]:
@@ -46,6 +46,7 @@ def plot(X,Y, pX, pY, fname="Plot"):
         plt.plot((pX[i], pX[i+1]), (pY[i], pY[i+1]), "--", markersize=3, c="red")
 
     if pX[-1] != X[-1]:
+
         plt.plot((pX[-1], X[-1]), _fit_points(pX[-1], X[-1], pX[-2], pY[-2], pX[-1], pY[-1]), "--", markersize=3, c="red")
     #while opt.l > 0:
     #    f = opt.slope
