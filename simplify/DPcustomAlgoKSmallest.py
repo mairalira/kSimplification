@@ -104,7 +104,7 @@ def segmented_least_squares_DP(X, Y, c, K) -> Dict[Tuple[int, int], Solution]:
 
     # Currently OPT[n-1] holds the best solution, if we require the algorithm to pick n, lets fix this.
     # Let's manually check all possible last segments, going through two points in the TS.
-    # We will use the DP for the area before last segment.
+    # We will leave the DP for the area before last segment.
     min_heap_last_point = MinHeap()  # Size: O(2*i)
     for i in range(1, len(X)):
         for j in range(0, i):
@@ -177,7 +177,7 @@ def extract_points(OPT: Dict[Tuple[int, int], Solution], k: int, X):
     return list(reversed(list_of_points_last_first))
 
 
-def solve_and_find_points(X, Y, c, K, saveImg=True):
+def solve_and_find_points(X, Y, c, K, saveImg=False):
     """
 
     :param X: X_values in timeseries
@@ -185,7 +185,7 @@ def solve_and_find_points(X, Y, c, K, saveImg=True):
     :param c: Punishment for more segments
     :param K: Top k best solution
     :param saveImg:
-    :return:
+    :return: all_selected_points, all_ys
     """
     print("Solve done")
     OPT = solve(X, Y, c, K)
@@ -196,8 +196,6 @@ def solve_and_find_points(X, Y, c, K, saveImg=True):
     all_ys = []
     for k in range(K):
         selected_points = extract_points(OPT, k, X)
-        if selected_points != sorted(selected_points):
-            print("WHAT?")
         ys = [Y[i] for i in selected_points]
         if saveImg:
             print(f"{k}/{K}")

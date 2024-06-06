@@ -8,81 +8,10 @@ from simplify.DPcustomAlgoKSmallest import solve_and_find_points
 import os
 
 
-def make_folder(folderName):
-    # Create the new folder
-    parent_folder = "img/"
-    relative_folder_location = parent_folder + folderName
-    os.makedirs(relative_folder_location, exist_ok=True)
-
-
-def calculate_line_equation(x1, y1, x2, y2, x3):
-    # Calculate the slope (m)
-    delta_x = x2 - x1
-    if delta_x == 0:
-        raise ValueError("The points must have different x-coordinates to calculate the slope.")
-    m = (y2 - y1) / delta_x
-
-    # Calculate the y-intercept (b)
-    b = y1 - m * x1
-
-    # Calculate y3 at x3
-    y3 = m * x3 + b
-
-    return y3
-
-
-def interpolate_points_to_line(ts_lenght, x_selcted, y_selcted):
-    """
-    Given a list (points) of [(x1,y1),(x2,y2),(x3,y3),(x4,y4)] of selected points calculate the y value of
-    each timeStep.
-
-    For each x in range(timeStep) we have 3 cases:
-    1. x1 <= x <= x4: Find the pair xi <= x <=xi+1, s.t. i<=3. Use this slope to find the corresponding y value.
-    2. x < x1. Extend the slope between x1 and x2 to x, and find the corresponding y value.
-    3. x4 < x. Extend the slope between x3 and x4 to x, and find the corresponding y value.
-    :param length: Length of time series
-    :return:
-    """
-
-    inter_ts = [0 for _ in range(ts_lenght)]
-    pointsX = 0
-    for i, x in enumerate(range(ts_lenght)):
-        if pointsX < len(x_selcted) - 2 and x > x_selcted[pointsX + 1]:
-            pointsX += 1
-
-        x1 = x_selcted[pointsX]
-        x2 = x_selcted[pointsX + 1]
-        y1 = y_selcted[pointsX]
-        y2 = y_selcted[pointsX + 1]
-        x3 = x
-        y3 = calculate_line_equation(x1, y1, x2, y2, x3)
-        inter_ts[x] = y3
-
-    return inter_ts
-
-
-def get_min_and_max(ts_all):
-    """
-    returns min_y and max_y in dataset
-    :param ts_all:
-    :return: min_y, max_y
-    """
-    max_y = max([max(ts) for ts in ts_all])
-    min_y = min([min(ts) for ts in ts_all])
-    return min_y, max_y
-
-
-def dataset_sensitive_c(ts_all, percentage_c):
-    min_y, max_y = get_min_and_max(ts_all)
-
-    c = abs(max_y - min_y) * percentage_c
-    return c
-
-
 def generate_approximation_ts_for_all_in_dataset():
     all_time_series = load_dataset_ts("Chinatown", data_type="TEST")
     model_name = "Chinatown_1000.keras"
-    store_all = True
+    store_all = False
     # Select one time series
     make_folder("justTS")
     make_folder("bestFit")
@@ -92,7 +21,7 @@ def generate_approximation_ts_for_all_in_dataset():
 
     my_c = dataset_sensitive_c(all_time_series, c_percentage)  # Chinatown: 1
     my_k = 1000
-    for ts_nr in range(len(all_time_series)):
+    for ts_nr in [0]:  # range(len(all_time_series)):
         print(ts_nr)
         ts = all_time_series[ts_nr]
         print(f"TS: {ts}")
@@ -121,6 +50,9 @@ def generate_approximation_ts_for_all_in_dataset():
                 plt.title(
                     f"Org confidence: {org_confidence:.2f}, Org class: {org_class} Curr class: {all_classes[i]} Curr confidence: {all_confidence[i]:.2f}")
                 plt.savefig(f'img/{ts_nr}/{i}.png')
+
+        # Select segmentations with same classification
+
         ts_and_class = zip(all_classes, list(range(len(all_interpolations))))
 
         ts_idx_to_keep = list(map(lambda x: x[1], filter(lambda x: x[0] == org_class, ts_and_class)))
@@ -134,22 +66,38 @@ def generate_approximation_ts_for_all_in_dataset():
         confidence_approx = confidence_of_keep[highest_confidence_among_keep_idx]
 
         from matplotlib import pyplot as plt
-        plt.clf()
-        # Make test img
-        plt.xlim(-1, 24)
-        plt.ylim(min_y - abs(max_y - min_y) * 0.1, max_y + abs(max_y - min_y) * 0.1)
-        plt.plot(x_values, ts, 'x', color='black')
-        plt.savefig(f'img/justTS/{ts_nr}.png')
+        from visualization.plotting import make_plot, TSParam, PlotParams
 
-        plt.clf()
-        plt.xlim(-1, 24)
-        plt.ylim(min_y - abs(max_y - min_y) * 0.1, max_y + abs(max_y - min_y) * 0.1)
-        plt.plot(x_values, ts, 'x', color='black')
-        plt.plot(x_values, all_interpolations[highest_confidence_idx], '--o', color='blue')
-        plt.plot(all_selected_points[highest_confidence_idx], all_ys[highest_confidence_idx], 'o', color='red')
-        plt.title(
-            f"Class org:{org_class}  Confidence org:{org_confidence:.2f}, class_approx:{class_approx} Confidence_approx:{confidence_approx:.2f}")
-        plt.savefig(f'img/bestFit/{ts_nr}.png')
+        tsParams = TSParam(x_values=x_values, y_values=ts, fmat='x', color='black')
+        save_file = f'img/justTS/{ts_nr}.png'
+        x_lim = (-1, 24)
+        y_lim = (min_y - abs(max_y - min_y) * 0.1, max_y + abs(max_y - min_y) * 0.1)
+        plotParams = PlotParams(ts_params=[tsParams], save_file=save_file, x_lim=x_lim, y_lim=y_lim)
+        make_plot(plotParams)
+
+        tsParamOrg = TSParam(x_values=x_values, y_values=ts, fmat='x', color='black')
+        tsParamSeg = TSParam(x_values=x_values, y_values=all_interpolations[highest_confidence_idx],
+                             fmat='--o', color='blue')
+        tsParamConfidence = TSParam(x_values=all_selected_points[highest_confidence_idx],
+                                    y_values=all_ys[highest_confidence_idx],
+                                    fmat='o', color='red')
+        x_lim = (-1, 24)
+        y_lim = (min_y - abs(max_y - min_y) * 0.1, max_y + abs(max_y - min_y) * 0.1)
+        title = f"Class org:{org_class}  Confidence org:{org_confidence:.2f}, class_approx:{class_approx} Confidence_approx:{confidence_approx:.2f}"
+        file_name = f'img/bestFit/{ts_nr}.png'
+        plotParams = PlotParams(ts_params=[tsParamOrg, tsParamSeg, tsParamConfidence], title=title, x_lim=x_lim,
+                                y_lim=y_lim,
+                                save_file=file_name)
+        make_plot(plotParams)
+
+        # plt.clf()
+        # plt.xlim(-1, 24)
+        # plt.ylim(min_y - abs(max_y - min_y) * 0.1, max_y + abs(max_y - min_y) * 0.1)
+        # plt.plot(x_values, ts, 'x', color='black')
+        # plt.plot(x_values, all_interpolations[highest_confidence_idx], '--o', color='blue')
+        # plt.plot(all_selected_points[highest_confidence_idx], all_ys[highest_confidence_idx], 'o', color='red')
+        # plt.title(f"Class org:{org_class}  Confidence org:{org_confidence:.2f}, class_approx:{class_approx} Confidence_approx:{confidence_approx:.2f}")
+        # plt.savefig(f'img/bestFit/{ts_nr}.png')
 
 
 if __name__ == '__main__':
