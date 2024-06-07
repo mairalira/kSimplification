@@ -1,16 +1,20 @@
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from matplotlib.colors import to_rgba
+
+import os
 
 import numpy as np
 import random
+from typing import List, Dict, Tuple
+from collections import defaultdict
+
 from models.loadModel import model_batch_classify, model_classify
 from utils.data import dataset_sensitive_c, get_min_and_max
 from utils.line import interpolate_points_to_line, convert_all_points_to_lines
 from dataSet.load_data import load_dataset_ts
 from simplify.DPcustomAlgoKSmallest import solve_and_find_points
-import os
-from typing import List, Dict, Tuple
-from collections import defaultdict
+
 from utils.model import class_to_color
 from visualization.plotting import ScatterParams, PlotParams
 from visualization.getTSParam import get_ts_param_org, get_ts_param_approx
@@ -236,9 +240,10 @@ def get_perturbations_scatter_params(all_perturbations: List[PerturbationTS]) ->
     all_1_x = [perturbation.new_x for perturbation in all_scatter_params[1]]
     all_1_y = [perturbation.new_y for perturbation in all_scatter_params[1]]
 
+    alpha = 2e-3
     scatter_0 = ScatterParams(x_values=all_0_x, y_values=all_0_y,
-                              color=class_to_color(0))
-    scatter_1 = ScatterParams(x_values=all_1_x, y_values=all_1_y, color=class_to_color(1))
+                              color=to_rgba(class_to_color(0), alpha=alpha))
+    scatter_1 = ScatterParams(x_values=all_1_x, y_values=all_1_y, color=to_rgba(class_to_color(1), alpha=alpha))
 
     scatter_params = [scatter_0, scatter_1]
 
@@ -252,16 +257,16 @@ def plot_perturbations_org_approx(perturbations: List[PerturbationTS], original_
     save_file = "testFile"
     x_min = min(perturbation.new_x for perturbation in perturbations)
     x_max = max(perturbation.new_x for perturbation in perturbations)
-    if x_max < 23:
-        print("what?")
 
     y_min = min(perturbation.new_y for perturbation in perturbations)
     y_max = max(perturbation.new_y for perturbation in perturbations)
 
     x_lim = (x_min - 1, x_max + 1)
     y_lim = (y_min - (y_max - y_min) / 10, y_max + (y_max - y_min) / 10)  # Some extra room
-    # Get TS for original and other support things
+
+    # Get TS param for original
     ts_param_org = get_ts_param_org(y_org=original_ts, model_name=model_name)
+    # Get TS Param for approx
     ts_param_approx = get_ts_param_approx(y_approx=approximation_ts, model_name=model_name)
     ts_params = [ts_param_org, ts_param_approx]
     PlotParams(ts_params=ts_params, scatter_params=scatter_params, title=title,

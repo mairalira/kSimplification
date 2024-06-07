@@ -1,17 +1,20 @@
 import matplotlib.pyplot as plt
 from collections import defaultdict
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union
 from typing_extensions import TypedDict
 import numpy as np
+import matplotlib.colors as mcolors
+
+ColorType = Union[Optional[str]], Tuple[float, float, float, float]
 
 
 class ScatterParams:
     x_values: List[int]
     y_values: List[float]
-    color: Optional[str]
+    color: ColorType
     marker: Optional[str]
 
-    def __init__(self, x_values: List[int], y_values: List[float], color: Optional[str] = None,
+    def __init__(self, x_values: List[int], y_values: List[float], color: ColorType = None,
                  marker: Optional[str] = None):
         self.x_values = x_values
         self.y_values = y_values
@@ -23,13 +26,18 @@ class TSParam:
     x_values: List[int] | np.ndarray
     y_values: List[float] | np.ndarray
     fmat: Optional[str]
-    color: Optional[str]
+    linestyle: Optional[str]
+    linewidth: Optional[float]
+    color: ColorType
 
     def __init__(self, x_values: List[int] | np.ndarray, y_values: List[float] | np.ndarray, fmat: str = None,
-                 color: Optional[str] = None):
+                 linestyle: Optional[str] = None, linewidth: Optional[float] = None,
+                 color: ColorType = None):
         self.x_values = x_values
         self.y_values = y_values
         self.fmat = fmat
+        self.linestyle = linestyle
+        self.linewidth = linewidth
         self.color = color
 
 
@@ -83,6 +91,10 @@ def get_args_and_kwargs(params: TSParam | ScatterParams):
     if isinstance(params, TSParam):
         if params.fmat is not None:
             plot_args.append(params.fmat)
+        if params.linestyle is not None:
+            plot_kwargs['linestyle'] = params.linestyle
+        if params.linewidth is not None:
+            plot_kwargs['linewidth'] = params.linewidth
 
     if isinstance(params, ScatterParams):
         if params.marker is not None:
@@ -116,11 +128,15 @@ def make_plot(plotParam: PlotParams):
 
 def run():
     color = 'red'
-    fmat = "--"
+    color = mcolors.to_rgba(color, alpha=0.9)
+    fmat = None  # "--"
+    linestyle = (0, (2, 0.5))
+    linewidth = 5
     x_value = [1, 2]
     y_value = [4, 2]
 
-    ts_param = TSParam(x_values=x_value, y_values=y_value, fmat=fmat, color=color)
+    ts_param = TSParam(x_values=x_value, y_values=y_value, fmat=fmat, color=color, linestyle=linestyle,
+                       linewidth=linewidth)
 
     color = 'blue'
     marker = "*"
