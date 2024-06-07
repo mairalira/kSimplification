@@ -18,38 +18,11 @@ from visualization.plotting import ScatterParams, PlotParams
 from visualization.getTSParam import get_ts_param_org, get_ts_param_approx
 from visualization.getEllipseParam import make_all_ellipse_param
 
-
-class PerturbationTS:
-    new_x: int
-    new_y: float
-    idx_pivots: int
-
-    x_pivots: List[int]
-    y_pivots: List[float]
-
-    line_version: List[float]
-
-    pred_class: int
-
-    def __init__(self, new_x: int, new_y: float, idx_pivots: int, x_pivots: List[int], y_pivots: List[float]):
-        self.new_x = new_x
-        self.new_y = new_y
-
-        self.idx_pivots = idx_pivots
-        self.x_pivots = x_pivots
-        self.y_pivots = y_pivots
-
-    def set_class(self, pred_class: int):
-        self.pred_class = pred_class
-
-    def set_line_version(self, ts_length: int):
-        line_version = interpolate_points_to_line(ts_length=ts_length, x_selected=self.x_pivots,
-                                                  y_selected=self.y_pivots)
-        self.line_version = line_version
+from Perturbations.dataTypes import SinglePointPerturbation
 
 
 def create_x_y_perturbation(org_pivots_y: List[float], org_pivots_x: List[int], ts_length: int, epsilon: float) -> \
-        List[PerturbationTS]:
+        List[SinglePointPerturbation]:
     resolution = 10 ** 3
     all_ys_perturbations = list(np.linspace(-epsilon, epsilon, resolution, endpoint=True))
     x_change = 1
@@ -70,15 +43,15 @@ def create_x_y_perturbation(org_pivots_y: List[float], org_pivots_x: List[int], 
                 new_x_value = org_pivots_x[idx] + x_change
                 new_y_pivots = org_pivots_y[:idx] + [new_y_value] + org_pivots_y[idx + 1:]
                 new_x_pivots = org_pivots_x[:idx] + [new_x_value] + org_pivots_x[idx + 1:]
-                new_perturbation = PerturbationTS(new_x=new_x_value, new_y=new_y_value, idx_pivots=idx,
-                                                  x_pivots=new_x_pivots, y_pivots=new_y_pivots)
+                new_perturbation = SinglePointPerturbation(new_x=new_x_value, new_y=new_y_value, idx_pivots=idx,
+                                                           x_pivots=new_x_pivots, y_pivots=new_y_pivots)
                 all_perturbations.append(new_perturbation)
 
     return all_perturbations
 
 
 def make_perturbations(pivots_y_original: List[float], pivots_x_original: List[int],
-                       line_version_original: List[float], epsilon: float) -> List[PerturbationTS]:
+                       line_version_original: List[float], epsilon: float) -> List[SinglePointPerturbation]:
     """
     We define a perturbation to be a combination of two changes.
     1. Changing a y value in pivots_y. I.e. pivots_y = [0,0,2,2,1] -> [0,0,4,2,2,1]
@@ -91,12 +64,12 @@ def make_perturbations(pivots_y_original: List[float], pivots_x_original: List[i
     Og.piv_x = [0,5,10], Og.piv_y = [10,5,10]
     perturbation: change middle higher and more right->
     Per.piv_x = [0,7,10], Per.piv_y = [10,7,10]
-    For each perturbation we create a PerturbationTS.
+    For each perturbation we create a SinglePointPerturbation.
     This store piv_x, piv_y, idx, line_version,pred_class.
 
 
-    Finally, we will return a list of all the PerturbationTS.
-    :return: List[PerturbationTS].
+    Finally, we will return a list of all the SinglePointPerturbation.
+    :return: List[SinglePointPerturbation].
     """
     org_ts_length = len(line_version_original)
     all_perturbations = create_x_y_perturbation(org_pivots_y=pivots_y_original, org_pivots_x=pivots_x_original,
@@ -113,7 +86,7 @@ def make_perturbations_and_get_class(pivots_y_original: List[float], pivots_x_or
     all_perturbations = make_perturbations(pivots_x_original=pivots_x_original, pivots_y_original=pivots_y_original,
                                            line_version_original=line_version_original, epsilon=epsilon)
     # get class
-    all_lines = [perturbation.line_version for perturbation in all_perturbations]
+    all_lines = [perturbation.perturbationTS.line_version for perturbation in all_perturbations]
 
     all_pred_class = model_batch_classify(model_name=model_name, batch_of_timeseries=all_lines)
     for perturbation, pred_class in zip(all_perturbations, all_pred_class):
@@ -122,13 +95,13 @@ def make_perturbations_and_get_class(pivots_y_original: List[float], pivots_x_or
     return all_perturbations
 
 
-def get_perturbations_scatter_params(all_perturbations: List[PerturbationTS]) -> List[ScatterParams]:
+def get_perturbations_scatter_params(all_perturbations: List[SinglePointPerturbation]) -> List[ScatterParams]:
     all_scatter_params = {
         0: [],
         1: []
     }
     for perturbation in all_perturbations:
-        if perturbation.pred_class == 0:
+        if perturbation.perturbationTS.pred_class == 0:
             all_scatter_params[0].append(perturbation)
         else:
             all_scatter_params[1].append(perturbation)
@@ -149,7 +122,7 @@ def get_perturbations_scatter_params(all_perturbations: List[PerturbationTS]) ->
     return scatter_params
 
 
-def plot_perturbations_org_approx(perturbations: List[PerturbationTS], original_ts: List[float] | np.ndarray,
+def plot_perturbations_org_approx(perturbations: List[SinglePointPerturbation], original_ts: List[float] | np.ndarray,
                                   approximation_ts: List[float], model_name: str, pivot_x_org: List[int],
                                   pivot_y_org: List[float],
                                   pivot_x_approx: List[int], pivot_y_approx: List[int]):
