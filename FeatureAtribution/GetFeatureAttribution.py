@@ -142,7 +142,7 @@ class PerturbationTS:
 
 def create_x_y_perturbation(org_pivots_y: List[float], org_pivots_x: List[int], ts_length: int, epsilon: float) -> \
         List[PerturbationTS]:
-    resolution = 10 ** 4
+    resolution = 10 ** 3
     all_ys_perturbations = list(np.linspace(-epsilon, epsilon, resolution, endpoint=True))
     x_change = 1
     num_changes = x_change * 2 + 1
@@ -212,9 +212,6 @@ def make_perturbations_and_get_class(pivots_y_original: List[float], pivots_x_or
                                            line_version_original=line_version_original, epsilon=epsilon)
     # get class
     all_lines = [perturbation.line_version for perturbation in all_perturbations]
-    max_x = max([perturbation.new_x for perturbation in all_perturbations])
-    if max_x < 23:
-        print("what")
 
     all_pred_class = model_batch_classify(model_name=model_name, batch_of_timeseries=all_lines)
     for perturbation, pred_class in zip(all_perturbations, all_pred_class):
