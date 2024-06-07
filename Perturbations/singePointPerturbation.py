@@ -37,7 +37,7 @@ def create_x_y_perturbation(org_pivots_y: List[float], org_pivots_x: List[int], 
                 continue
                 # We don't want to change x so much it overlaps with another x in org_pivots_x
                 # NB: We can still have that two perturbations overlap
-                # NB: Don't change x out of the range [0 .. ts_length-1]
+                # NB: Don't change x out of the range [0 ts_length-1]
             for y_change in all_ys_perturbations:
                 new_y_value = org_pivots_y[idx] + y_change
                 new_x_value = org_pivots_x[idx] + x_change
@@ -134,9 +134,9 @@ def plot_perturbations_org_approx(perturbations: List[SinglePointPerturbation], 
     ts_param_approx = get_ts_param_approx(y_approx=approximation_ts, model_name=model_name)
     ts_params = [ts_param_org, ts_param_approx]
 
-    # Add elipses on the pivot points
+    # Add ellipses on the pivot points
     ellipsis_org = make_all_ellipse_param(x_pivots=pivot_x_org, y_pivots=pivot_y_org, inner=True)
-    # Add hallow elipses on the edge points
+    # Add hallow ellipses on the edge points
     ellipsis_approx = make_all_ellipse_param(x_pivots=pivot_x_approx, y_pivots=pivot_y_approx, inner=False)
     all_ellipse_params = ellipsis_org + ellipsis_approx
 
@@ -180,105 +180,8 @@ def test(instance_nr, model_name, dataset_name):
     plot_perturbations_org_approx(perturbations=all_perturbations, original_ts=ts, approximation_ts=approx_line,
                                   model_name=model_name, pivot_x_org=pivot_point_x_org, pivot_y_org=pivot_point_y_org,
                                   pivot_x_approx=pivot_points_x, pivot_y_approx=pivot_points_y)
-    # perturbation_by_x = _create_perturbation_all_x_all_y_dict(pivots_x=best_fit_points, pivots_ys=best_fit_ys,
-    #                                                          epsilon=epsilon_div)
 
 
-#
-# line_version_dict = {}
-# for x in perturbation_by_x.keys():
-#
-#    line_version_dict[x + 1] = {}
-#    if x not in line_version_dict:
-#        line_version_dict[x] = {}
-#    if x - 1 not in line_version_dict:
-#        line_version_dict[x - 1] = {}
-#    for y in perturbation_by_x[x].keys():
-#        line_version_xy = interpolate_points_to_line(ts_length=len(ts), x_selected=best_fit_points,
-#                                                     y_selected=perturbation_by_x[x][y])
-#        line_version_dict[x][y] = line_version_xy
-#
-#        if x != 0 and (x - 1) not in best_fit_points:
-#            new_x_pivots = [idx if x != idx else idx - 1 for idx in best_fit_points]
-#            line_before_version_xy = interpolate_points_to_line(ts_length=len(ts), x_selected=new_x_pivots,
-#                                                                y_selected=perturbation_by_x[x][y])
-#
-#            line_version_dict[x - 1][y] = line_before_version_xy
-#
-#        if x != best_fit_points[-1] and (x + 1) not in best_fit_points:
-#            new_x_pivots = [idx if x != idx else idx + 1 for idx in best_fit_points]
-#            line_before_version_xy = interpolate_points_to_line(ts_length=len(ts), x_selected=new_x_pivots,
-#                                                                y_selected=perturbation_by_x[x][y])
-#
-#            line_version_dict[x + 1][y] = line_before_version_xy
-#        # DO the same other side!
-#
-# x_y_line = []
-# for x_idx in line_version_dict.keys():
-#    for y_value in line_version_dict[x_idx].keys():
-#        curr_line = line_version_dict[x_idx][y_value]
-#        # class_curr = model_classify(model_name="Chinatown_1000.keras", time_series=curr_line)
-#        # dict_class[x_idx][y_value] = class_curr
-#        x_y_line.append((x_idx, y_value, curr_line))
-#
-# dict_class = {}
-# just_lines_values = [line for x, y, line in x_y_line]
-# class_all = model_batch_classify(model_name=model_name, batch_of_timeseries=just_lines_values)
-# x_y_c = [(x, y, c) for (x, y, line), c in zip(x_y_line, class_all)]
-# class_org = model_classify(model_name=model_name, time_series=ts)
-# class_approx = model_classify(model_name=model_name, time_series=approx_line)
-#
-## x_to_ymin_ymax = find_continues_x_length(x_y_c=x_y_c, target_class=class_approx)
-#
-## x_to_y = [(x, x_to_ymin_ymax[x][0], x_to_ymin_ymax[x][1]) for x in x_to_ymin_ymax.keys()]
-## vert_x = [x for x, min_y, max_y in x_to_y]
-## vert_y_min = [min_y for x, min_y, max_y in x_to_y]
-## vert_y_max = [max_y for x, min_y, max_y in x_to_y]
-#
-# fig, ax = plt.subplots()
-#
-## plt.vlines(x=vert_x, ymin=vert_y_min, ymax=vert_y_max, colors=class_to_color(class_approx))
-# X_0 = [x for x, y, c in x_y_c if c == 0]
-# Y_0 = [y for x, y, c in x_y_c if c == 0]
-# X_1 = [x for x, y, c in x_y_c if c == 1]
-# Y_1 = [y for x, y, c in x_y_c if c == 1]
-## print(X_1, Y_1)
-# plt.clf()
-# plt.scatter(X_0, Y_0, color=class_to_color(0))
-# plt.scatter(X_1, Y_1, color=class_to_color(1))
-# org_color = class_to_color(class_org)
-# plt.plot(list(range(len(ts))), ts, color=org_color)
-# approx_color = class_to_color(class_approx)
-# plt.plot(list(range(len(approx_line))), approx_line, "--", color=approx_color)
-# line_above = approx_line + epsilon_div
-# line_below = approx_line - epsilon_div
-#
-# plt.title(f"{dataset_name}, Feature Attribution instance nr: {instance_nr}")
-#
-## Make it look nice
-# plt.plot(list(range(len(line_above))), line_above, color='black')
-# plt.plot(list(range(len(line_below))), line_below, color='black')
-# y_lim_max = max_y + epsilon_div
-# y_lim_min = min_y - epsilon_div
-# plt.ylim((y_lim_min, y_lim_max))
-# plt.xlim((-1, 24))
-# for i, x in enumerate(best_fit_points_org):
-#    y = best_fit_ys_org[i]
-#    x_axsis_r = 0.4
-#    y_axsis_r = x_axsis_r * (y_lim_max - y_lim_min) / (24 - (-1))
-#    ellipse = patches.Ellipse((x, y), x_axsis_r, y_axsis_r, fill=True, color='grey')
-#    ax.add_patch(ellipse)
-#
-# for i, x in enumerate(best_fit_points):
-#    y = best_fit_ys[i]
-#    x_axsis_r = 0.6
-#    y_axsis_r = x_axsis_r * (y_lim_max - y_lim_min) / (24 - (-1))
-#    ellipse = patches.Ellipse((x, y), x_axsis_r, y_axsis_r, fill=False, color='black')
-#    ax.add_patch(ellipse)
-# plt.savefig(f"PyPlots/{dataset_name}/{instance_nr}")
-# plt.show()
-#
-#
 def run():
     model_name = "Chinatown_1000.keras"
     dataset_name = "Chinatown"
