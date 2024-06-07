@@ -4,8 +4,25 @@ from typing import Optional, List, Tuple, Union
 from typing_extensions import TypedDict
 import numpy as np
 import matplotlib.colors as mcolors
+import matplotlib.patches as patches
 
 ColorType = Union[Optional[str]], Tuple[float, float, float, float]
+LineStyle = Union[Optional[str], Tuple[float, Tuple[float, float]]]
+
+
+class EllipseParams:
+    x_pos: int
+    y_pos: float
+    radius: float
+    color: ColorType
+    fill: bool
+
+    def __init__(self, x_pos: int, y_pos: float, radius: float, color: ColorType, fill: bool):
+        self.x_pos = x_pos
+        self.y_pos = y_pos
+        self.radius = radius
+        self.color = color
+        self.fill = fill
 
 
 class ScatterParams:
@@ -26,12 +43,12 @@ class TSParam:
     x_values: List[int] | np.ndarray
     y_values: List[float] | np.ndarray
     fmat: Optional[str]
-    linestyle: Optional[str]
+    linestyle: LineStyle
     linewidth: Optional[float]
     color: ColorType
 
     def __init__(self, x_values: List[int] | np.ndarray, y_values: List[float] | np.ndarray, fmat: str = None,
-                 linestyle: Optional[str] = None, linewidth: Optional[float] = None,
+                 linestyle: LineStyle = None, linewidth: Optional[float] = None,
                  color: ColorType = None):
         self.x_values = x_values
         self.y_values = y_values
@@ -44,6 +61,7 @@ class TSParam:
 class PlotParams:
     ts_params: [TSParam]
     scatter_params: [ScatterParams]
+    ellipse_params: [EllipseParams]
     title: Optional[str]
     save_file: Optional[str]
     display: bool
@@ -51,13 +69,16 @@ class PlotParams:
     y_lim: Optional[Tuple[float, float]]
 
     def __init__(self, ts_params: List[TSParam] = None, scatter_params: List[ScatterParams] = None,
-                 title: Optional[str] = None, save_file: Optional[str] = None,
+                 ellipse_params: List[EllipseParams] = None, title: Optional[str] = None,
+                 save_file: Optional[str] = None,
                  display: bool = False,
                  x_lim: Optional[Tuple[int, int]] = None, y_lim: Optional[Tuple[float, float]] = None):
         if ts_params is None:
             ts_params = []
         if scatter_params is None:
             scatter_params = []
+        if ellipse_params is None:
+            ellipse_params = []
 
         if x_lim is None:
             min_x = min([min([x for x in ts_param.x_values]) for ts_param in ts_params])
@@ -72,6 +93,7 @@ class PlotParams:
 
         self.ts_params = ts_params
         self.scatter_params = scatter_params
+        self.ellipse_params = ellipse_params
         self.title = title
         self.save_file = save_file
         self.display = display
@@ -105,16 +127,25 @@ def get_args_and_kwargs(params: TSParam | ScatterParams):
 def make_plot(plotParam: PlotParams):
     # Always clear
     plt.clf()
-    plt.xlim(plotParam.x_lim)
-    plt.ylim(plotParam.y_lim)
-    for tsParam in plotParam.ts_params:
-        args, kwargs = get_args_and_kwargs(tsParam)
-        plt.plot(*args, **kwargs)
+    fig, ax = plt.subplots()
+    ax.set_xlim(plotParam.x_lim)
+    ax.set_ylim(plotParam.y_lim)
     print("Start to scatter on plot")
     for scatterParam in plotParam.scatter_params:
         args, kwargs = get_args_and_kwargs(scatterParam)
-        plt.scatter(*args, **kwargs)
+        ax.scatter(*args, **kwargs, zorder=1)
     print("Scatter on plot finished")
+    for tsParam in plotParam.ts_params:
+        args, kwargs = get_args_and_kwargs(tsParam)
+        ax.plot(*args, **kwargs, zorder=2)
+
+    for ellipseParam in plotParam.ellipse_params:
+        x_axsis_r = ellipseParam.radius
+        y_axsis_r = ellipseParam.radius * (
+                abs(plotParam.y_lim[0] - plotParam.y_lim[1]) / abs(plotParam.x_lim[0] - plotParam.x_lim[1]))
+        ellipse = patches.Ellipse((ellipseParam.x_pos, ellipseParam.y_pos), x_axsis_r, y_axsis_r,
+                                  fill=ellipseParam.fill, color=ellipseParam.color, zorder=3)
+        ax.add_patch(ellipse)
 
     if plotParam.title is not None:
         plt.title(plotParam.title)
@@ -146,7 +177,23 @@ def run():
     location = "testImg"
     x_lim = (0, 6)
     y_lim = (0, 6)
-    plot_params = PlotParams(ts_params=[ts_param], scatter_params=[sc_param], save_file=location, display=True,
+
+    color = "grey"
+    x_pos = 3
+    y_pos = 3
+    fill = True
+    radius = 0.1
+    ellipse_param_inner = EllipseParams(x_pos=x_pos, y_pos=y_pos, radius=radius, color=color, fill=fill)
+    color = "black"
+    x_pos = 3
+    y_pos = 3
+    fill = False
+    radius = 0.15
+    ellipse_param_outer = EllipseParams(x_pos=x_pos, y_pos=y_pos, radius=radius, color=color, fill=fill)
+    ellipse_params = [ellipse_param_inner, ellipse_param_outer]
+
+    plot_params = PlotParams(ts_params=[ts_param], scatter_params=[sc_param], ellipse_params=ellipse_params,
+                             save_file=location, display=True,
                              x_lim=x_lim, y_lim=y_lim)
 
     make_plot(plot_params)

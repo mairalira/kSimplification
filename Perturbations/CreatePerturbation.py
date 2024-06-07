@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 from matplotlib.colors import to_rgba
 
 import os
@@ -17,6 +16,7 @@ from dataSet.load_data import load_dataset_ts
 from utils.model import class_to_color
 from visualization.plotting import ScatterParams, PlotParams
 from visualization.getTSParam import get_ts_param_org, get_ts_param_approx
+from visualization.getEllipseParam import make_all_ellipse_param
 
 
 class PerturbationTS:
@@ -150,9 +150,25 @@ def get_perturbations_scatter_params(all_perturbations: List[PerturbationTS]) ->
 
 
 def plot_perturbations_org_approx(perturbations: List[PerturbationTS], original_ts: List[float] | np.ndarray,
-                                  approximation_ts: List[float], model_name: str):
+                                  approximation_ts: List[float], model_name: str, pivot_x_org: List[int],
+                                  pivot_y_org: List[float],
+                                  pivot_x_approx: List[int], pivot_y_approx: List[int]):
     scatter_params = get_perturbations_scatter_params(perturbations)
-    title = "testTile"
+
+    # Get TS param for original
+    ts_param_org = get_ts_param_org(y_org=original_ts, model_name=model_name)
+    # Get TS Param for approx
+    ts_param_approx = get_ts_param_approx(y_approx=approximation_ts, model_name=model_name)
+    ts_params = [ts_param_org, ts_param_approx]
+
+    # Add elipses on the pivot points
+    ellipsis_org = make_all_ellipse_param(x_pivots=pivot_x_org, y_pivots=pivot_y_org, inner=True)
+    # Add hallow elipses on the edge points
+    ellipsis_approx = make_all_ellipse_param(x_pivots=pivot_x_approx, y_pivots=pivot_y_approx, inner=False)
+    all_ellipse_params = ellipsis_org + ellipsis_approx
+
+    # Make the plot and display it
+    title = "Best Title there is!"
     save_file = "testFile"
     x_min = min(perturbation.new_x for perturbation in perturbations)
     x_max = max(perturbation.new_x for perturbation in perturbations)
@@ -163,36 +179,34 @@ def plot_perturbations_org_approx(perturbations: List[PerturbationTS], original_
     x_lim = (x_min - 1, x_max + 1)
     y_lim = (y_min - (y_max - y_min) / 10, y_max + (y_max - y_min) / 10)  # Some extra room
 
-    # Get TS param for original
-    ts_param_org = get_ts_param_org(y_org=original_ts, model_name=model_name)
-    # Get TS Param for approx
-    ts_param_approx = get_ts_param_approx(y_approx=approximation_ts, model_name=model_name)
-    ts_params = [ts_param_org, ts_param_approx]
-    PlotParams(ts_params=ts_params, scatter_params=scatter_params, title=title,
+    PlotParams(ts_params=ts_params, scatter_params=scatter_params, ellipse_params=all_ellipse_params, title=title,
                save_file=save_file, display=True,
                x_lim=x_lim,
                y_lim=y_lim).make_plot()
 
 
 def test(instance_nr, model_name, dataset_name):
-    pivot_point_x, pivot_points_y, ts, min_y, max_y = get_time_series_and_seg_pivots(dataset_name=dataset_name,
-                                                                                     instance_nr=instance_nr)
+    pivot_points_x, pivot_points_y, ts, min_y, max_y = get_time_series_and_seg_pivots(dataset_name=dataset_name,
+                                                                                      instance_nr=instance_nr)
+    pivot_point_x_org = pivot_points_x.copy()
+    pivot_point_y_org = pivot_points_y.copy()
     # best_fit_ys_org = pivot_points_y.copy()
     # best_fit_points_org = pivot_point_x.copy()
-    approx_line = interpolate_points_to_line(len(ts), pivot_point_x, pivot_points_y)
-    pivot_point_x[0] = 0
-    pivot_point_x[-1] = len(ts) - 1
+    approx_line = interpolate_points_to_line(len(ts), pivot_points_x, pivot_points_y)
+    pivot_points_x[0] = 0
+    pivot_points_x[-1] = len(ts) - 1
 
     pivot_points_y[0] = approx_line[0]
     pivot_points_y[-1] = approx_line[-1]
 
     epsilon_div = (max_y - min_y) / 5
-    all_perturbations = make_perturbations_and_get_class(pivots_x_original=pivot_point_x,
+    all_perturbations = make_perturbations_and_get_class(pivots_x_original=pivot_points_x,
                                                          pivots_y_original=pivot_points_y,
                                                          line_version_original=ts, model_name=model_name,
                                                          epsilon=epsilon_div)
     plot_perturbations_org_approx(perturbations=all_perturbations, original_ts=ts, approximation_ts=approx_line,
-                                  model_name=model_name)
+                                  model_name=model_name, pivot_x_org=pivot_point_x_org, pivot_y_org=pivot_point_y_org,
+                                  pivot_x_approx=pivot_points_x, pivot_y_approx=pivot_points_y)
     # perturbation_by_x = _create_perturbation_all_x_all_y_dict(pivots_x=best_fit_points, pivots_ys=best_fit_ys,
     #                                                          epsilon=epsilon_div)
 
