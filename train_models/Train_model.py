@@ -31,7 +31,7 @@ def train_model(dataset: str, epochs=500, verbose=True):
 
 
 def test():
-    datasets = ["Chinatown", "ItalyPowerDemand"]
+    datasets = ["Chinatown", "ItalyPowerDemand", "ECG200"]
     for dataset in datasets:
         train_model(dataset, epochs=100)
 

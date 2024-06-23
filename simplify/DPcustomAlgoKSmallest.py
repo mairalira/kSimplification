@@ -3,7 +3,7 @@ from collections import defaultdict as D
 from collections import namedtuple as T
 from simplify.plotting import plot
 from simplify.MinHeap import MinHeap
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 import random
 from simplify.utils.types import HeapStruct
 
@@ -33,11 +33,11 @@ sol0 = sol(0, 0, 0, 0, 0, True)
 VINF = sol(float("inf"), 0, 0, 0, 0, True)
 
 
-def _line_error(f: Function, X, Y):
+def _line_error(f: Function, X, Y, distance_weight, alpha):
     error = 0
     for x, y in zip(X, Y):
         error += abs(f.m * x + f.b - y) ** 2
-    return error
+    return alpha * error / distance_weight
 
 
 def _gen_line(x1, y1, x2, y2) -> Function:
@@ -46,7 +46,10 @@ def _gen_line(x1, y1, x2, y2) -> Function:
     return Function(m, b)
 
 
-def segmented_least_squares_DP(X, Y, c, K) -> Dict[Tuple[int, int], Solution]:
+def segmented_least_squares_DP(X: List[int], Y: List[float] | np.ndarray, c: float, K: int, distance_weight: float,
+                               alpha: float) -> \
+        Dict[
+            Tuple[int, int], Solution]:
     """
     Least squares solution using segmented least squares DP algo.
     Parameters
@@ -54,6 +57,8 @@ def segmented_least_squares_DP(X, Y, c, K) -> Dict[Tuple[int, int], Solution]:
     @ Y:param, List of Y values
     @ c:param, Punishment for more segments
     """
+    print(f"X:{X}")
+    print(f"Y:{Y}")
     OPT = D(lambda: VINF)
     # Base case for only one point
     OPT[0, 0] = sol0
@@ -65,7 +70,7 @@ def segmented_least_squares_DP(X, Y, c, K) -> Dict[Tuple[int, int], Solution]:
             f = _gen_line(X[j], Y[j], X[i], Y[i])
 
             # Keep other segments
-            f_line_error = _line_error(f, X[j:i + 1], Y[j:i + 1])
+            f_line_error = _line_error(f, X[j:i + 1], Y[j:i + 1], distance_weight, alpha=alpha)
             f_segment_keep_error = OPT[j, 0].error + c + f_line_error
 
             heap_best_opt_j = heap(f_segment_keep_error, f_line_error, j, i, 0, last_seg=False)
@@ -73,7 +78,7 @@ def segmented_least_squares_DP(X, Y, c, K) -> Dict[Tuple[int, int], Solution]:
 
             if j != 0:
                 # Draw a line to the start
-                f_total_line_error = _line_error(f, X[0:i + 1], Y[0:i + 1])
+                f_total_line_error = _line_error(f, X[0:i + 1], Y[0:i + 1], distance_weight, alpha=alpha)
                 f_total_error = f_total_line_error + c
 
                 heap_final_best_opt_j = heap(f_total_error, None, j, i, 0, last_seg=True)
@@ -112,14 +117,14 @@ def segmented_least_squares_DP(X, Y, c, K) -> Dict[Tuple[int, int], Solution]:
             f = _gen_line(X[j], Y[j], X[i], Y[i])
 
             # Find error j to end.
-            f_line_out_error = _line_error(f, X[j:], Y[j:])
+            f_line_out_error = _line_error(f, X[j:], Y[j:], distance_weight, alpha=alpha)
             f_out_error = OPT[j, 0].error + c + f_line_out_error  # OPTIMAL 0..j + c + rest
             heap_best_opt_j = heap(f_out_error, f_line_out_error, j, i, 0, last_seg=False)
             min_heap_last_point.insert(heap_best_opt_j)
 
             if j != 0:  # Don't want duplicate
                 # Find error 0 to end
-                f_line_full_error = _line_error(f, X, Y)
+                f_line_full_error = _line_error(f, X, Y, distance_weight, alpha=alpha)
                 f_out_full_error = c + f_line_full_error  # c + ALL
                 heap_best_all_opt_j = heap(f_out_full_error, None, j, i, 0, last_seg=True)
                 min_heap_last_point.insert(heap_best_all_opt_j)
@@ -153,8 +158,8 @@ def segmented_least_squares_DP(X, Y, c, K) -> Dict[Tuple[int, int], Solution]:
     return OPT
 
 
-def solve(X, Y, c, K) -> Dict[Tuple[int, int], Solution]:
-    OPT = segmented_least_squares_DP(X, Y, c, K)
+def solve(X, Y, c, K, distance_weight, alpha: float) -> Dict[Tuple[int, int], Solution]:
+    OPT = segmented_least_squares_DP(X, Y, c, K, distance_weight, alpha=alpha)
     return OPT
 
 
@@ -177,7 +182,7 @@ def extract_points(OPT: Dict[Tuple[int, int], Solution], k: int, X):
     return list(reversed(list_of_points_last_first))
 
 
-def solve_and_find_points(X, Y, c, K, saveImg=False):
+def solve_and_find_points(X, Y, c, K, distance_weight: float, alpha: float, saveImg=False):
     """
 
     :param X: X_values in timeseries
@@ -188,7 +193,7 @@ def solve_and_find_points(X, Y, c, K, saveImg=False):
     :return: all_selected_points, all_ys
     """
     print("Solve done")
-    OPT = solve(X, Y, c, K)
+    OPT = solve(X, Y, c, K, distance_weight, alpha=alpha)
     if saveImg:
         print("Making images...")
     print("Min error:", OPT[len(X) - 1, 0].error)
@@ -212,4 +217,5 @@ if __name__ == "__main__":
     ts_y = [random.randint(-10, 10) for _ in range(len(ts_x))]
     my_c = 1
     my_k = 10000
-    solve_and_find_points(ts_x, ts_y, my_c, my_k)
+    weight = max(ts_y) - min(ts_y)
+    solve_and_find_points(ts_x, ts_y, my_c, my_k, weight)

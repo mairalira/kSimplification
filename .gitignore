@@ -162,3 +162,24 @@ cython_debug/
 /img/bestFit
 
 /img/*
+
+/PyPlots/Chinatown/RobustnessPlot/*
+/PyPlots/Chinatown/CleanPrototypes/*
+/PyPlots/Chinatown/ExplainedPrototypes/*
+/PyPlots/Chinatown/AlphaBetaGamma/*
+/PyPlots/Chinatown/Test/*
+/PyPlots/Chinatown/Train/*
+
+/PyPlots/ECG200/RobustnessPlot/*
+/PyPlots/ECG200/CleanPrototypes/*
+/PyPlots/ECG200/ExplainedPrototypes/*
+/PyPlots/ECG200/AlphaBetaGamma/*
+/PyPlots/ECG200/Test/*
+/PyPlots/ECG200/Train/*
+
+/PyPlots/ItalyPowerDemand/RobustnessPlot/*
+/PyPlots/ItalyPowerDemand/CleanPrototypes/*
+/PyPlots/ItalyPowerDemand/ExplainedPrototypes/*
+/PyPlots/ItalyPowerDemand/AlphaBetaGamma/*
+/PyPlots/ItalyPowerDemand/Test/*
+/PyPlots/ItalyPowerDemand/Train/*

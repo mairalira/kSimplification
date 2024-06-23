@@ -44,7 +44,8 @@ def create_x_y_perturbation(org_pivots_y: List[float], org_pivots_x: List[int], 
                 new_y_pivots = org_pivots_y[:idx] + [new_y_value] + org_pivots_y[idx + 1:]
                 new_x_pivots = org_pivots_x[:idx] + [new_x_value] + org_pivots_x[idx + 1:]
                 new_perturbation = SinglePointPerturbation(new_x=new_x_value, new_y=new_y_value, idx_pivots=idx,
-                                                           x_pivots=new_x_pivots, y_pivots=new_y_pivots)
+                                                           x_pivots=new_x_pivots, y_pivots=new_y_pivots,
+                                                           ts_length=ts_length)
                 all_perturbations.append(new_perturbation)
 
     return all_perturbations

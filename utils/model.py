@@ -1,3 +1,8 @@
+from matplotlib.colors import to_rgba
+
+from visualization.plotting import ColorType
+
+
 def get_confidence_of_same_class_ts(target_class: int, all_class: [int], all_confidence: [float], all_ts: [float]) -> \
         [([float], float)]:
     """
@@ -20,3 +25,7 @@ def class_to_color(predicted_class: int) -> str:
         0: "blue"
     }
     return class_to_color_dict[predicted_class]
+
+
+def class_to_alpha_color(predicted_class: int, alpha: float) -> ColorType:
+    return to_rgba(class_to_color(predicted_class), alpha=alpha)

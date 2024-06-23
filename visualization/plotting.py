@@ -63,6 +63,7 @@ class PlotParams:
     scatter_params: [ScatterParams]
     ellipse_params: [EllipseParams]
     title: Optional[str]
+    folder: Optional[str]
     save_file: Optional[str]
     display: bool
     x_lim: Optional[Tuple[int, int]]
@@ -70,7 +71,7 @@ class PlotParams:
 
     def __init__(self, ts_params: List[TSParam] = None, scatter_params: List[ScatterParams] = None,
                  ellipse_params: List[EllipseParams] = None, title: Optional[str] = None,
-                 save_file: Optional[str] = None,
+                 save_file: Optional[str] = None, folder: Optional[str] = None,
                  display: bool = False,
                  x_lim: Optional[Tuple[int, int]] = None, y_lim: Optional[Tuple[float, float]] = None):
         if ts_params is None:
@@ -96,6 +97,7 @@ class PlotParams:
         self.ellipse_params = ellipse_params
         self.title = title
         self.save_file = save_file
+        self.folder = folder
         self.display = display
         self.x_lim = x_lim
         self.y_lim = y_lim
@@ -130,11 +132,9 @@ def make_plot(plotParam: PlotParams):
     fig, ax = plt.subplots()
     ax.set_xlim(plotParam.x_lim)
     ax.set_ylim(plotParam.y_lim)
-    print("Start to scatter on plot")
     for scatterParam in plotParam.scatter_params:
         args, kwargs = get_args_and_kwargs(scatterParam)
         ax.scatter(*args, **kwargs, zorder=1)
-    print("Scatter on plot finished")
     for tsParam in plotParam.ts_params:
         args, kwargs = get_args_and_kwargs(tsParam)
         ax.plot(*args, **kwargs, zorder=2)
@@ -151,10 +151,15 @@ def make_plot(plotParam: PlotParams):
         plt.title(plotParam.title)
 
     if plotParam.save_file is not None:
-        plt.savefig(plotParam.save_file)
+        folder = plotParam.folder
+        if folder is None:
+            folder = "PyPlots"
+        plt.savefig(f"{folder}/{plotParam.save_file}.png")
 
     if plotParam.display:
         plt.show()
+        
+    plt.close(fig)
 
 
 def run():

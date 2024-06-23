@@ -1,4 +1,8 @@
 import random
+import numpy as np
+from typing import List, Tuple
+from collections import defaultdict
+
 from dataSet.load_data import load_dataset_ts
 from simplify.DPcustomAlgoKSmallest import solve_and_find_points
 from utils.line import check_if_all_is_on_line, get_pivot_points
@@ -6,8 +10,15 @@ import matplotlib.pyplot as plt
 from utils.data import dataset_sensitive_c, get_min_and_max
 from utils.line import interpolate_points_to_line
 from models.loadModel import model_batch_classify, model_classify
-import numpy as np
-from typing import List, Tuple
+
+from Perturbations.dataTypes import SegmentedTS
+from Perturbations.singePointPerturbation import create_x_y_perturbation as single_perturbation
+from Perturbations.fullLinePerturbation import create_x_y_perturbations as full_perturbation
+
+from utils.model import class_to_alpha_color
+
+from visualization.plotting import TSParam, PlotParams
+from visualization.getEllipseParam import both_in_and_out_ellipse_params
 
 
 def float_to_rgb(value):
@@ -18,88 +29,129 @@ def float_to_rgb(value):
     return tuple([int(x * 255) for x in rgb])
 
 
-def create_permutations(points_y, max_y, min_y, k=10 ** 6, e=0.08):
-    dataset_dist = abs(max_y - min_y)
-    epsilon = e
-
-    change_range = dataset_dist * epsilon
-    permutations = []
-    for i in range(k):
-        new_val_points = []
-        for point in points_y:
-            random_val = random.gauss(0, 1)  # Currently using gaussion random, could use uniform random.uniform(-1, 1))
-            new_val_points.append(point + change_range * random_val)
-        permutations.append(new_val_points)
-
-    return permutations
-
-
-def get_local_robust_score_approx(approximation: List[float], model_name: str, k: int, target_class: int):
-    pivot_points = get_pivot_points(approximation)
-    pivot_y_values = [approximation[x] for x in pivot_points]
-    return get_local_robust_score(ts_length=len(approximation), in_points_x=pivot_points, points_y=pivot_y_values,
-                                  model_name=model_name, k=k, target_class=target_class)
+# def create_permutations(points_y, max_y, min_y, k=10 ** 6, e=0.08):
+#     dataset_dist = abs(max_y - min_y)
+#     epsilon = e
+#
+#     change_range = dataset_dist * epsilon
+#     permutations = []
+#     for i in range(k):
+#         new_val_points = []
+#         for point in points_y:
+#             random_val = random.gauss(0, 1)  # Currently using gaussion random, could use uniform random.uniform(-1, 1))
+#             new_val_points.append(point + change_range * random_val)
+#         permutations.append(new_val_points)
+#
+#     return permutations
 
 
-def get_local_robust_score(ts_length, in_points_x, points_y, model_name: str, target_class: int, k=10 ** 6,
+def get_local_robust_score_approx(approximation: SegmentedTS, model_name: str, k: int, target_class: int,
+                                  epsilon: float = None, verbose: bool = False, title: str = "",
+                                  save_file: str = "", lim_y: Tuple[float, float] = None,
+                                  lim_x: Tuple[float, float] = None, original_ts: List[float] = None) -> float:
+    return get_local_robust_score(approximation=approximation,
+                                  model_name=model_name, k=k, target_class=target_class, epsilon=epsilon,
+                                  verbose=verbose, title=title, save_file=save_file, lim_y=lim_y, lim_x=lim_x,
+                                  original_ts=original_ts)
+
+
+def get_local_robust_score(approximation: SegmentedTS, model_name: str, target_class: int, k=10 ** 4,
                            random_seed=42,
-                           verbose=False, title="", lim_x=None, lim_y=None) -> float:
+                           verbose=False, title: str = "", save_file: str = "", lim_x=None, lim_y=None,
+                           epsilon: float = None, original_ts: List[float] = None) -> float:
     """
     TODO: THIS SHOULD NOT DO ANY FORM OF PLOTTING INSIDE THE ROBUSTNESS SCORE!
     Returns the local robustness score of given approximation defined by its points of change.
+    :param save_file:
+    :param epsilon:
+    :param approximation:
     :param target_class:
     :param lim_y:
     :param lim_x:
     :param title:
-    :param in_points_x:
     :param verbose:
     :param random_seed:
-    :param ts_length:
-    :param points_y:
     :param model_name:
     :param k:
     :return:
     """
     random.seed(random_seed)
-    points_x = [0] + in_points_x[1:-1] + [ts_length - 1]  # We want to change the first and last point in the TS
+    pivots_x = approximation.x_pivots
+    ts_length = len(approximation.line_version)
+    pivots_x = [0] + pivots_x[1:-1] + [ts_length - 1]  # We want to change the first and last point in the TS
 
-    min_y = min(points_y)
-    max_y = max(points_y)
+    pivots_y = np.concatenate(
+        [[approximation.line_version[0]], approximation.y_pivots[1:-1], [approximation.line_version[
+                                                                             -1]]])  # approximation.y_pivots
+    min_y = min(pivots_y)
+    max_y = max(pivots_y)
+    if epsilon is None:
+        epsilon = (max_y - min_y) * 0.1
 
-    all_permutation_points = create_permutations(points_y=points_y, min_y=min_y, max_y=max_y, k=k)
-
-    # Convert every perturbed set of points to lines
-    list_of_local_time_series = []
-    for perturbation_y_values in all_permutation_points:
-        line_version = interpolate_points_to_line(ts_length=ts_length, x_selected=points_x,
-                                                  y_selected=perturbation_y_values)
-        list_of_local_time_series.append(line_version)
+    # Single point?
+    # all_permutation_points = single_perturbation(org_pivots_y=pivots_y, org_pivots_x=pivots_x, ts_length=ts_length,
+    #                                             epsilon=epsilon)
+    # Or all points
+    all_permutation_points = full_perturbation(org_pivots_y=pivots_y, org_pivots_x=pivots_x, ts_length=ts_length,
+                                               epsilon=epsilon, k=k)
 
     # Get class of all of them
-    class_of_all = np.array(model_batch_classify(model_name=model_name, batch_of_timeseries=list_of_local_time_series))
+    class_of_all = np.array(model_batch_classify(model_name=model_name,
+                                                 batch_of_timeseries=[permutation.line_version for permutation in
+                                                                      all_permutation_points]))
     unique, counts = np.unique(class_of_all, return_counts=True)
-    dict_count = {}
+    dict_count = defaultdict(lambda: 0)
     for u, count in zip(unique, counts):
         if verbose:
             print(f"Number {u} occurs {count} times")
         dict_count[u] = count
     if verbose:
+        print("Saving Fragility map")
         plt.clf()
-        for class_of_line, line in zip(class_of_all, list_of_local_time_series):
+        all_ts_plots = []
+        for class_of_line, line in zip(class_of_all, all_permutation_points):  # type: int, SegmentedTS
             alpha = 0.05
-            color = (1, 0, 0, alpha) if class_of_line == 1 else (0, 0, 1, alpha)
-            plt.plot(list(range(ts_length)), line, color=color)
-        plt.title(title)
-        plt.xlim(lim_x)
-        plt.ylim(lim_y)
-        plt.savefig(f"pdfs/{random_seed}")
+            color = class_to_alpha_color(class_of_line, alpha=alpha)
+            new_ts_parm = TSParam(
+                x_values=list(range(ts_length)),
+                y_values=line.line_version,
+                color=color
+            )
+            all_ts_plots.append(new_ts_parm)
+        # Approximation
+        all_ts_plots.append(TSParam(
+            x_values=list(range(ts_length)),
+            y_values=approximation.line_version,
+            color="black",  # class_to_alpha_color(predicted_class=target_class, alpha=1),
+            linestyle=(2, (5, 2)),
+            linewidth=4
+        ))
+        # Original
+        if original_ts is not None:
+            all_ts_plots.append(TSParam(
+                x_values=list(range(ts_length)),
+                y_values=original_ts,
+                color="grey",
+                linewidth=2
 
-        plt.show()
-    # Handle divide by zero problems.
-    if 0 not in dict_count and 1 in dict_count:
-        return 1
-    if 1 not in dict_count and 0 in dict_count:
-        return 0
+            ))
+
+        all_ellipse = both_in_and_out_ellipse_params(approximation=approximation)
+        PlotParams(
+            ts_params=all_ts_plots,
+            ellipse_params=all_ellipse,
+            x_lim=lim_x,
+            y_lim=lim_y,
+            title=title + " " + f"Fragility: {(1 - dict_count[target_class] / (dict_count[0] + dict_count[1])):.2f}",
+            save_file=f"{save_file}"
+        ).make_plot()
+        # plt.title(title)
+        # plt.xlim(lim_x)
+        # plt.ylim(lim_y)
+        # plt.savefig(f"pdfs/{random_seed}")
+
+        # plt.show()
+
     return dict_count[target_class] / (dict_count[0] + dict_count[1])
 
 

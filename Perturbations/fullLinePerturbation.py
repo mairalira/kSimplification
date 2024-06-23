@@ -4,7 +4,7 @@ import numpy as np
 
 from matplotlib.colors import to_rgba
 
-from Perturbations.dataTypes import PerturbationTS
+from Perturbations.dataTypes import SegmentedTS
 from models.loadModel import model_batch_classify
 
 from utils.model import class_to_color
@@ -14,10 +14,11 @@ from utils.line import interpolate_points_to_line
 from visualization.plotting import TSParam, PlotParams
 
 
-def create_x_y_perturbations(org_pivots_y: List[float], org_pivots_x: List[int], ts_length: int, epsilon: float) -> \
-        List[PerturbationTS]:
+def create_x_y_perturbations(org_pivots_y: List[float], org_pivots_x: List[int], ts_length: int, epsilon: float,
+                             k: int = 5e4) -> \
+        List[SegmentedTS]:
     all_perturbations = []
-    resolution = int(5.0e4)  # Number of lines
+    resolution = int(k)  # Number of lines
     for i in range(resolution):
         new_pivots_y = []
         new_pivots_x = []
@@ -32,35 +33,34 @@ def create_x_y_perturbations(org_pivots_y: List[float], org_pivots_x: List[int],
                 possible_x_values = list(range(0, x_range + 1))
             if j == len(org_pivots_x) - 1:
                 possible_x_values = list(range(-x_range, 1))
-            random_x_change = random.choice(possible_x_values)
-            new_pivot_x = org_pivots_x[j] + random_x_change
-            count = 1000
-            while new_pivot_x in new_pivots_x:  # Ensure that we don't get an impossible line
-                count -= 1
-                print("In the loooop")
-                random_x_change = random.choice(possible_x_values)
+
+            random.shuffle(possible_x_values)
+            found_new_pivot_x = None
+            for random_x_change in possible_x_values:
                 new_pivot_x = org_pivots_x[j] + random_x_change
-                if count <= 0:
-                    raise Exception("Stuck", new_pivot_x, possible_x_values, org_pivots_x)
+                if new_pivot_x in new_pivots_x or new_pivot_y in org_pivots_x:
+                    continue
+                else:
+                    found_new_pivot_x = new_pivot_x
+                    break
 
             new_pivots_y.append(new_pivot_y)
-            new_pivots_x.append(new_pivot_x)
-        tsParam = PerturbationTS(x_pivots=new_pivots_x, y_pivots=new_pivots_y)
-        tsParam.set_line_version(ts_length)
+            new_pivots_x.append(found_new_pivot_x)
+        tsParam = SegmentedTS(x_pivots=new_pivots_x, y_pivots=new_pivots_y, ts_length=ts_length)
         all_perturbations.append(tsParam)
     return all_perturbations
 
 
-def classify_all_perturbations(all_perturbations: List[PerturbationTS], model_name: str) -> List[PerturbationTS]:
+def classify_all_perturbations(all_perturbations: List[SegmentedTS], model_name: str) -> List[SegmentedTS]:
     all_line_version = [perturbation.line_version for perturbation in all_perturbations]
     all_pred_classes = model_batch_classify(batch_of_timeseries=all_line_version, model_name=model_name)
-    for perturbation, pred_class in zip(all_perturbations, all_pred_classes):  # type: PerturbationTS, int
+    for perturbation, pred_class in zip(all_perturbations, all_pred_classes):  # type: SegmentedTS, int
         perturbation.set_class(pred_class)
 
     return all_perturbations
 
 
-def full_perturbations_to_ts_params(all_perturbations: List[PerturbationTS]) -> List[TSParam]:
+def full_perturbations_to_ts_params(all_perturbations: List[SegmentedTS]) -> List[TSParam]:
     all_perturbation_params = []
     for perturbation in all_perturbations:
         alpha = 2e-3
@@ -76,7 +76,7 @@ def full_perturbations_to_ts_params(all_perturbations: List[PerturbationTS]) -> 
     return all_perturbation_params
 
 
-def plot_full_line_perturbations(all_perturbations: List[PerturbationTS], original_ts: List[float] | np.ndarray,
+def plot_full_line_perturbations(all_perturbations: List[SegmentedTS], original_ts: List[float] | np.ndarray,
                                  approximation_ts: List[float], model_name: str, pivot_x_org: List[int],
                                  pivot_y_org: List[float],
                                  pivot_x_approx: List[int], pivot_y_approx: List[int]):

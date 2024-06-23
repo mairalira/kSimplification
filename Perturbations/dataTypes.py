@@ -3,16 +3,20 @@ from typing import List
 from utils.line import interpolate_points_to_line
 
 
-class PerturbationTS:
+class SegmentedTS:
     x_pivots: List[int]
     y_pivots: List[float]
+    ts_length: int
+
     line_version: List[float]
 
     pred_class: int
 
-    def __init__(self, x_pivots: List[int], y_pivots: List[float]):
+    def __init__(self, x_pivots: List[int], y_pivots: List[float], ts_length: int):
         self.x_pivots = x_pivots
         self.y_pivots = y_pivots
+        self.ts_length = ts_length
+        self.set_line_version(ts_length)
 
     def set_class(self, pred_class: int):
         self.pred_class = pred_class
@@ -28,10 +32,11 @@ class SinglePointPerturbation:
     new_y: float
     idx_pivots: int
 
-    perturbationTS: PerturbationTS
+    perturbationTS: SegmentedTS
 
-    def __init__(self, new_x: int, new_y: float, idx_pivots: int, x_pivots: List[int], y_pivots: List[float]):
-        self.perturbationTS = PerturbationTS(x_pivots=x_pivots, y_pivots=y_pivots)
+    def __init__(self, new_x: int, new_y: float, idx_pivots: int, x_pivots: List[int], y_pivots: List[float],
+                 ts_length: int):
+        self.perturbationTS = SegmentedTS(x_pivots=x_pivots, y_pivots=y_pivots, ts_length=ts_length)
 
         self.new_x = new_x
         self.new_y = new_y

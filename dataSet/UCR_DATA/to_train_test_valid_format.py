@@ -32,10 +32,11 @@ def convert_data(dataset, shuffle=False, random_state=42):
     # There is a choice to be made here. Should I use train from UCR and as train, and split test
     # into test and validate.
     # I will for now do train -> train, and test -> validation, test.
-    train_perc = 0.4
-    val_perc = 0.3
-    test_perc = 0.3
+    # train_perc = 0.4
+    # val_perc = 0.3
+    test_perc = 0.7
     train = parse_tsv(dataset + "_TRAIN.tsv")
+    random.seed(42)
     if shuffle:
         np.random.shuffle(train)
 
@@ -53,3 +54,4 @@ def convert_data(dataset, shuffle=False, random_state=42):
 if __name__ == '__main__':
     convert_data("ItalyPowerDemand")
     convert_data("Chinatown")
+    convert_data("ECG200")

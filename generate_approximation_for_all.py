@@ -7,33 +7,41 @@ from models.loadModel import batch_confidence, model_batch_classify, model_class
 from simplify.DPcustomAlgoKSmallest import solve_and_find_points
 import os
 
+from utils.folder import make_folder
+from utils.data import get_min_and_max, dataset_sensitive_c
+from utils.line import interpolate_points_to_line
+
 
 def generate_approximation_ts_for_all_in_dataset():
-    all_time_series = load_dataset_ts("Chinatown", data_type="TEST")
+    dataset_name = "Chinatown"
+    all_time_series = load_dataset_ts(dataset_name, data_type="TEST")
     model_name = "Chinatown_1000.keras"
-    store_all = False
+    store_all = True
     # Select one time series
-    make_folder("justTS")
-    make_folder("bestFit")
+    make_folder("PyPlots/img/justTS")
+    make_folder("PyPlots/img/bestFit")
 
     min_y, max_y = get_min_and_max(all_time_series)
-    c_percentage = 200
+    distance_weight = max_y - min_y
 
-    my_c = dataset_sensitive_c(all_time_series, c_percentage)  # Chinatown: 1
+    my_c = dataset_sensitive_c(dataset=dataset_name, distance_weight=distance_weight)  # Chinatown: 1
     my_k = 1000
-    for ts_nr in [0]:  # range(len(all_time_series)):
+    for ts_nr in range(len(all_time_series)):
+        if store_all:
+            make_folder(f"PyPlots/img/{str(ts_nr)}")
         print(ts_nr)
         ts = all_time_series[ts_nr]
         print(f"TS: {ts}")
 
         x_values = [i for i in range(len(ts))]
 
-        all_selected_points, all_ys = solve_and_find_points(x_values, ts, my_c, my_k, saveImg=False)
+        all_selected_points, all_ys = solve_and_find_points(x_values, ts, c=my_c, K=my_k, saveImg=False,
+                                                            distance_weight=distance_weight)
         all_interpolations = []
         if store_all:
             make_folder(str(ts_nr))
         for i, (selected_points, ys) in enumerate(zip(all_selected_points, all_ys)):
-            inter_ts = interpolate_points_to_line(ts_lenght=len(ts), x_selcted=selected_points, y_selcted=ys)
+            inter_ts = interpolate_points_to_line(ts_length=len(ts), x_selected=selected_points, y_selected=ys)
             all_interpolations.append(inter_ts)
 
         org_class = model_classify(model_name, ts)
@@ -49,7 +57,7 @@ def generate_approximation_ts_for_all_in_dataset():
                 plt.plot(selected_points, ys, '--D', color='red')
                 plt.title(
                     f"Org confidence: {org_confidence:.2f}, Org class: {org_class} Curr class: {all_classes[i]} Curr confidence: {all_confidence[i]:.2f}")
-                plt.savefig(f'img/{ts_nr}/{i}.png')
+                plt.savefig(f'PyPlots/img/{ts_nr}/{i}.png')
 
         # Select segmentations with same classification
 
@@ -69,7 +77,7 @@ def generate_approximation_ts_for_all_in_dataset():
         from visualization.plotting import make_plot, TSParam, PlotParams
 
         tsParams = TSParam(x_values=x_values, y_values=ts, fmat='x', color='black')
-        save_file = f'img/justTS/{ts_nr}.png'
+        save_file = f'img/justTS/{ts_nr}'
         x_lim = (-1, 24)
         y_lim = (min_y - abs(max_y - min_y) * 0.1, max_y + abs(max_y - min_y) * 0.1)
         plotParams = PlotParams(ts_params=[tsParams], save_file=save_file, x_lim=x_lim, y_lim=y_lim)
