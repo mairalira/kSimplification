@@ -19,6 +19,7 @@ def create_x_y_perturbations(org_pivots_y: List[float], org_pivots_x: List[int],
         List[SegmentedTS]:
     all_perturbations = []
     resolution = int(k)  # Number of lines
+    random.seed(42)
     for i in range(resolution):
         new_pivots_y = []
         new_pivots_x = []

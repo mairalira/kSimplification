@@ -81,8 +81,8 @@ def get_local_robust_score(approximation: SegmentedTS, model_name: str, target_c
     pivots_x = [0] + pivots_x[1:-1] + [ts_length - 1]  # We want to change the first and last point in the TS
 
     pivots_y = np.concatenate(
-        [[approximation.line_version[0]], approximation.y_pivots[1:-1], [approximation.line_version[
-                                                                             -1]]])  # approximation.y_pivots
+        [[approximation.line_version[0]], approximation.y_pivots[1:-1],
+         [approximation.line_version[-1]]])  # approximation.y_pivots
     min_y = min(pivots_y)
     max_y = max(pivots_y)
     if epsilon is None:
@@ -142,7 +142,8 @@ def get_local_robust_score(approximation: SegmentedTS, model_name: str, target_c
             ellipse_params=all_ellipse,
             x_lim=lim_x,
             y_lim=lim_y,
-            title=title + " " + f"Fragility: {(1 - dict_count[target_class] / (dict_count[0] + dict_count[1])):.2f}",
+            title="",
+            # TODO: REDO title + " " + f"Fragility: {(1 - dict_count[target_class] / (dict_count[0] + dict_count[1])):.2f}",
             save_file=f"{save_file}"
         ).make_plot()
         # plt.title(title)

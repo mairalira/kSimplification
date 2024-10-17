@@ -55,3 +55,4 @@ if __name__ == '__main__':
     convert_data("ItalyPowerDemand")
     convert_data("Chinatown")
     convert_data("ECG200")
+    convert_data("Charging")

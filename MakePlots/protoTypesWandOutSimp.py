@@ -16,8 +16,8 @@ from Perturbations.dataTypes import SegmentedTS
 
 
 def all_datasets_multiplot_prototypes():
-    all_datasets = ["Chinatown", "ECG200"]
-    all_models = ["Chinatown_100.keras", "ECG200_100.keras"]
+    all_datasets = ["Charging"]  # ["ItalyPowerDemand", "Chinatown", "ECG200"]
+    all_models = ["Charging_100.keras"]  # ["ItalyPowerDemand_100.keras ", "Chinatown_100.keras", "ECG200_100.keras"]
     for dataset, model in zip(all_datasets, all_models):
         multi_plot_all_prototypes(dataset_name=dataset, model_name=model)
 

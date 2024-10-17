@@ -41,7 +41,10 @@ class Classifier_FCN:
 
         model = keras.models.Model(inputs=input_layer, outputs=output_layer)
 
-        model.compile(loss='categorical_crossentropy', optimizer=keras.optimizers.Adam(),
+        # model.compile(loss='categorical_crossentropy', optimizer=keras.optimizers.Adam(),
+        #              metrics=['accuracy'])
+
+        model.compile(loss='binary_crossentropy', optimizer=keras.optimizers.Adam(),
                       metrics=['accuracy'])
 
         reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=50,

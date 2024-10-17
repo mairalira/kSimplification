@@ -4,6 +4,7 @@ import numpy as np
 
 def euclidean_distance_weighted(ts1: List[float], ts2: list[float], weight: float) -> float:
     # Euclidean distance
+
     ts1 = np.array(ts1)
     ts2 = np.array(ts2)
     dist = np.linalg.norm(ts1 - ts2)

@@ -15,13 +15,20 @@ from models.loadModel import model_classify
 
 
 def run():
-    dataset = "Chinatown"
-    model_name = "Chinatown_100.keras"
+    dataset = "ECG200"
+    model_name = "ECG200_100.keras"
     instance_nr = 2
-    # class_0, class_1 = get_prototypes(dataset_name=dataset, model_name=model_name)
+    class_0, class_1 = get_prototypes(dataset_name=dataset, model_name=model_name)
     # time_series = get_time_series(dataset_name=dataset, instance_nr=2)
-
-    best_approximation = get_best_approximation(dataset_name=dataset, model_name=model_name, instance_nr=instance_nr)
+    if dataset != "Chinatown":
+        instance_nr = class_0[0]
+    robustness_resolution = 1000
+    k_count = 1
+    best_approximation = get_best_approximation(dataset_name=dataset, model_name=model_name, instance_nr=instance_nr,
+                                                alpha=0.01, beta=0.001, gamma=100,
+                                                robustness_resolution=robustness_resolution,
+                                                k=k_count)
+    robustness_resolution = 10000
 
     max_value = 250
     y_value_0 = max_value
@@ -41,19 +48,19 @@ def run():
         ts_length=len(best_approximation.line_version)
     )
     y_min, y_max = get_min_max_from_dataset_name(dataset_name=dataset)
-    epsilon = (y_max - y_min) / 10
+    epsilon = (y_max - y_min) / 5  # (y_max - y_min) / 10
     folder_name = "RobustnessPlot"
     make_folder(f"PyPlots/{dataset}/{folder_name}")
-    curr_class = model_classify(time_series=new_time_series_seg.line_version, model_name=model_name)
-    get_local_robust_score(approximation=new_time_series_seg,
+    curr_class = model_classify(time_series=best_approximation.line_version, model_name=model_name)
+    get_local_robust_score(approximation=best_approximation,
                            model_name=model_name,
                            target_class=curr_class,
                            lim_y=(y_min - epsilon, y_max),
                            epsilon=epsilon,
-                           save_file=f"{dataset}/{folder_name}/{instance_nr}_{max_value}",
-                           verbose=False,
-                           plot=True,
-                           title=f"{dataset} ts[0]={max_value}"
+                           save_file=f"{dataset}/{folder_name}/{instance_nr}_{max_value}_{robustness_resolution}_wrong",
+                           verbose=True,
+                           title="",  # f"{dataset} ts[0]={max_value}",
+                           k=robustness_resolution
                            )
 
 

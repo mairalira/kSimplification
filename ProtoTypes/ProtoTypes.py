@@ -75,7 +75,7 @@ def all_datasets():
     dataset_names = ["ItalyPowerDemand", "Chinatown", "ECG200"]
     model_names = ["ItalyPowerDemand_100.keras", "Chinatown_100.keras", "ECG200_100.keras"]
     for dataset_name, model_name in zip(dataset_names, model_names):
-        run(dataset_name=dataset_name, model_name=model_name)
+        get_prototypes(dataset_name=dataset_name, model_name=model_name, verbose=True)
 
 
 if __name__ == '__main__':
