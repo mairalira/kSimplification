@@ -22,10 +22,10 @@ def run():
     # time_series = get_time_series(dataset_name=dataset, instance_nr=2)
     if dataset != "Chinatown":
         instance_nr = class_0[0]
-    robustness_resolution = 1000
-    k_count = 1
+    robustness_resolution = 100
+    k_count = 100
     best_approximation = get_best_approximation(dataset_name=dataset, model_name=model_name, instance_nr=instance_nr,
-                                                alpha=0.01, beta=0.001, gamma=100,
+                                                alpha=0.1, beta=0.000001, gamma=0.001,
                                                 robustness_resolution=robustness_resolution,
                                                 k=k_count)
     robustness_resolution = 10000
