@@ -29,7 +29,6 @@ def make_plot_by_chosen_alpha_beta_gamma(alpha: float, beta: float, gamma: float
     folder_name = "AlphaBetaGamma"
     make_folder(f"PyPlots/{dataset_name}/{folder_name}")
     title = f"Nr:{instance_nr}, Alpha:{alpha}, Beta:{beta}, Gamma:{gamma}"
-    title = ""
     PlotParams(
         ts_params=[ts_param, ts_org_param],
         display=True,
@@ -195,8 +194,8 @@ def run_with_multiple_instance_numbers(dataset_name, model_name):
 
 
 def multiple_datasets():
-    datasets = ["ECG200"]  # ["Chinatown", "ItalyPowerDemand", "ECG200"]
-    models = ["ECG200_100.keras"]  # ["Chinatown_100.keras", "ItalyPowerDemand_100.keras", "ECG200_100.keras"]
+    datasets = ["Chinatown", "ItalyPowerDemand", "ECG200"]
+    models = ["Chinatown_100.keras", "ItalyPowerDemand_100.keras", "ECG200_100.keras"]
     for dataset_name, model in zip(datasets, models):
         run_with_multiple_instance_numbers(dataset_name=dataset_name, model_name=model)
 

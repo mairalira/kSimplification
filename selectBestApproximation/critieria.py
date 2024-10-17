@@ -98,7 +98,7 @@ def get_best_approximation_for_ts(single_ts: List[float] | np.ndarray, dataset_n
                                   early_stop: bool = True
                                   ) -> SegmentedTS:
     ts_length = len(single_ts)
-    target_class = 1 - model_classify(model_name=model_name, time_series=single_ts)  # TODO: NOT REMOVE (1-) !
+    target_class = model_classify(model_name=model_name, time_series=single_ts)
     c = dataset_sensitive_c(dataset=dataset_name, distance_weight=distance_weight)
     nr_of_approximation = k
 
@@ -172,7 +172,7 @@ def get_best_approximation_for_ts(single_ts: List[float] | np.ndarray, dataset_n
                     x_lim=(-1, ts_length),
                     save_file_name=f"{dataset_name}/all_segs/{nr}_{str(approximation.x_pivots)}",
                     best_approx=approximation,
-                    display=True  # TODO: REMOVE!!
+                    display=False
                 )
                 print(nr)
     make_plot(

@@ -158,7 +158,7 @@ def make_plot(plotParam: PlotParams):
 
     if plotParam.display:
         plt.show()
-        
+
     plt.close(fig)
 
 
