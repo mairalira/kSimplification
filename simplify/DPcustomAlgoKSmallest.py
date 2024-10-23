@@ -1,3 +1,7 @@
+import math
+
+from utils.scoring_functions import score_simplicity, score_closeness
+
 import numpy as np
 from collections import defaultdict as D
 from collections import namedtuple as T
@@ -6,6 +10,10 @@ from simplify.MinHeap import MinHeap
 from typing import Dict, Tuple, List
 import random
 from simplify.utils.types import HeapStruct
+
+from utils.line import euclidean_distance_weighted
+from utils.scoring_functions import score_closeness
+from Perturbations.dataTypes import SegmentedTS
 
 Solution = T("Solution", "error currentIdx currentOrder prevIdx prevOrder last_seg")
 Function = T("Function", "m b")
@@ -34,10 +42,14 @@ VINF = sol(float("inf"), 0, 0, 0, 0, True)
 
 
 def _line_error(f: Function, X, Y, distance_weight, alpha):
-    error = 0
-    for x, y in zip(X, Y):
-        error += abs(f.m * x + f.b - y) ** 2
-    return alpha * error / distance_weight
+    ts1 = [f.m * x + f.b for x in X]
+    ts2 = Y
+    error = score_closeness(ts1=ts1, ts2=ts2, distance_weight=distance_weight, alpha=alpha)
+    return error
+    # error = 0
+    # for x, y in zip(X, Y):
+    #    error += abs(f.m * x + f.b - y) ** 2
+    # return alpha * math.sqrt(error) / distance_weight
 
 
 def _gen_line(x1, y1, x2, y2) -> Function:
@@ -197,6 +209,7 @@ def solve_and_find_points(X, Y, c, K, distance_weight: float, alpha: float, save
     if saveImg:
         print("Making images...")
     print("Min error:", OPT[len(X) - 1, 0].error)
+    print("Max error:", OPT[len(X) - 1, K - 1].error)
     all_selected_points = []
     all_ys = []
     for k in range(K):

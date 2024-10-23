@@ -18,6 +18,7 @@ from utils.data import dataset_sensitive_c, set_c_manually
 from utils.model import class_to_color
 from utils.hard_coded_ts import get_hard_coded_ts, get_proto_types_index
 from utils.folder import make_folder
+from utils.scoring_functions import score_closeness, score_simplicity
 
 from visualization.getTSParam import get_ts_param_org, get_ts_param_approx
 from visualization.getEllipseParam import make_all_ellipse_param, both_in_and_out_ellipse_params
@@ -29,12 +30,13 @@ from ProtoTypes.ProtoTypes import get_prototypes
 
 
 def get_simplicity_score(approximation, c):
-    return c * len(approximation.x_pivots)
+    return score_simplicity(approximation, c)
 
 
-def get_closeness_score(ts1: List[float] | np.ndarray, ts2: List[float] | np.ndarray, distance_weight: float):
+def get_closeness_score(ts1: List[float] | np.ndarray, ts2: List[float] | np.ndarray, distance_weight: float,
+                        alpha: float):
     # This should use the same function as the DP algo!!
-    similarity = euclidean_distance_weighted(ts1=ts1, ts2=ts2, weight=distance_weight)
+    similarity = score_closeness(ts1=ts1, ts2=ts2, distance_weight=distance_weight, alpha=alpha)
     return similarity
 
 
@@ -60,16 +62,19 @@ def score_approximation(approximation: SegmentedTS, original: List[float] | np.n
     """
     global IDX
     # resolution = 10 ** 3
-    closeness = get_closeness_score(ts1=approximation.line_version, ts2=original, distance_weight=distance_weight)
+    closeness = get_closeness_score(ts1=approximation.line_version, ts2=original, distance_weight=distance_weight,
+                                    alpha=alpha)
     simplicity = get_simplicity_score(approximation, c)
 
-    if closeness * alpha + simplicity > best_so_far_score:
+    if closeness + simplicity > best_so_far_score:
+        print(f"{gamma} gamma")
         if gamma < 0:
             if closeness * alpha + simplicity + gamma > best_so_far_score:
                 return float("inf"), None, None, None
 
         else:
             # We can never do better so search should end.
+            print("Closeness and simplicity score to large")
             return float("inf"), None, None, None
     IDX += 1
 
@@ -80,7 +85,7 @@ def score_approximation(approximation: SegmentedTS, original: List[float] | np.n
                                                      lim_x=lim_x, lim_y=lim_y,
                                                      original_ts=original_ts)
     robustness_score = 1 - robustness_score  # Robustness of 1 means every single perturbation had the target class
-    score = alpha * closeness + simplicity + gamma * robustness_score
+    score = closeness + simplicity + gamma * robustness_score
     return score, closeness, simplicity, robustness_score
 
 
@@ -97,6 +102,7 @@ def get_best_approximation_for_ts(single_ts: List[float] | np.ndarray, dataset_n
     c = dataset_sensitive_c(dataset=dataset_name, distance_weight=distance_weight)
     nr_of_approximation = k
 
+    print("what is going on?", alpha, c, nr_of_approximation, distance_weight)
     all_selected_points, all_ys = solve_and_find_points(
         X=list(range(len(single_ts))),
         Y=single_ts, c=c,
@@ -144,18 +150,9 @@ def get_best_approximation_for_ts(single_ts: List[float] | np.ndarray, dataset_n
             lim_x=(0, 24),
             original_ts=single_ts
         )
-        if verbose:
-            make_plot(
-                original_ts=single_ts,
-                model_name=model_name,
-                title="",
-                y_lim=(min_y, max_y),
-                x_lim=(-1, ts_length),
-                save_file_name=f"{dataset_name}/all_segs/{nr}_{str(approximation.x_pivots)}",
-                best_approx=approximation
-            )
-            print(nr)
+
         if closeness is None or simplicity is None or robustness_score is None:
+            print("We break now!")
             break
         # Should be correct, as this only happens when closeness is > best
         if score < best_approx_score:
@@ -166,6 +163,18 @@ def get_best_approximation_for_ts(single_ts: List[float] | np.ndarray, dataset_n
             best_robustness_score = robustness_score
             print(
                 f"Best_score {best_approx_score}, best_approx {best_approx}\nCloseness: {best_closeness} simplicity: {best_simplicity} robustness: {best_robustness_score}")
+            if verbose:
+                make_plot(
+                    original_ts=single_ts,
+                    model_name=model_name,
+                    title="",
+                    y_lim=(min_y, max_y),
+                    x_lim=(-1, ts_length),
+                    save_file_name=f"{dataset_name}/all_segs/{nr}_{str(approximation.x_pivots)}",
+                    best_approx=approximation,
+                    display=False
+                )
+                print(nr)
     make_plot(
         original_ts=single_ts,
         model_name=model_name,
@@ -197,7 +206,8 @@ def get_best_approximation_for_ts(single_ts: List[float] | np.ndarray, dataset_n
 def make_plot(original_ts: List[float] | np.ndarray, model_name: str, title: str, y_lim: Tuple[float, float],
               x_lim: Tuple[int, int],
               save_file_name: str,
-              best_approx: SegmentedTS):
+              best_approx: SegmentedTS,
+              display=False):
     ts_param_org = get_ts_param_org(y_org=original_ts, model_name=model_name)
     ts_param_approx = get_ts_param_approx(y_approx=best_approx.line_version, model_name=model_name)
 
@@ -209,7 +219,7 @@ def make_plot(original_ts: List[float] | np.ndarray, model_name: str, title: str
         title=title,
         y_lim=y_lim,
         x_lim=x_lim,
-        display=False,
+        display=display,
         save_file=f"{save_file_name}"
     ).make_plot()
 
@@ -254,12 +264,12 @@ def test():
 
 # First point
 def get_best_approximation(dataset_name: str, model_name: str, instance_nr: int, alpha=0.5, beta=0.01, gamma=1,
-                           early_stop=True, k=2 * 10 ** 4):
+                           early_stop=True, k=2 * 10 ** 4, verbose=False, robustness_resolution: float = 5 * 10 ** 3):
     if not early_stop:
         print("Not early stopping mode")
     c_value = beta
     set_c_manually(c_value)
-    robustness_resolution = 10 ** 2
+    robustness_resolution = robustness_resolution
     nr_of_approximations = k
 
     all_ts = load_dataset_ts(dataset_name, data_type="TEST")
@@ -278,7 +288,8 @@ def get_best_approximation(dataset_name: str, model_name: str, instance_nr: int,
         gamma=gamma,
         k=nr_of_approximations,
         robustness_resolution=robustness_resolution,
-        early_stop=early_stop
+        early_stop=early_stop,
+        verbose=verbose
     )
     return best_approximation
 
