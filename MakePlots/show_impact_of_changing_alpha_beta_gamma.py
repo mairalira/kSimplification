@@ -1,3 +1,11 @@
+import sys
+import os
+
+# Add the directory containing 'Perturbations' to sys.path
+script_dir = os.path.dirname(os.path.abspath(__file__))  # Directory where the script is located
+parent_dir = os.path.dirname(script_dir)  # One level up from the script directory
+sys.path.append(parent_dir)
+
 import numpy as np
 from numpy.random import PCG64
 

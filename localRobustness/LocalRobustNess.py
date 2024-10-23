@@ -109,7 +109,7 @@ def get_local_robust_score(approximation: SegmentedTS, model_name: str, target_c
         print("Saving Fragility map")
         plt.clf()
         all_ts_plots = []
-        for class_of_line, line in zip(class_of_all, all_permutation_points):  # type: int, SegmentedTS
+        for class_of_line, line in zip(class_of_all, all_permutation_points):  # type int SegmentedTS
             alpha = 0.05
             color = class_to_alpha_color(class_of_line, alpha=alpha)
             new_ts_parm = TSParam(

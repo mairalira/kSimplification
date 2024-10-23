@@ -108,7 +108,7 @@ def get_best_approximation_for_ts(single_ts: List[float] | np.ndarray, dataset_n
                    zip(all_selected_points, all_ys)]
     all_lines = [segTS.line_version for segTS in ts_segments]
     all_pred_class = model_batch_classify(model_name=model_name, batch_of_timeseries=all_lines)
-    for segTS, pred_class in zip(ts_segments, all_pred_class):  # type: SegmentedTS,int
+    for segTS, pred_class in zip(ts_segments, all_pred_class):  # SegmentedTS - int
         segTS.set_class(pred_class)
 
     print(f"Pre filter size: {len(ts_segments)}")
@@ -252,7 +252,7 @@ def test():
                         verbose=verbose
                     )
 
-
+# First point
 def get_best_approximation(dataset_name: str, model_name: str, instance_nr: int, alpha=0.5, beta=0.01, gamma=1,
                            early_stop=True, k=2 * 10 ** 4):
     if not early_stop:
